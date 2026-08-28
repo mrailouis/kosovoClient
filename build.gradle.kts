@@ -8,34 +8,22 @@ plugins {
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
-//Constants:
-
 val baseGroup: String by project
 val mcVersion: String by project
 val version: String by project
-val mixinGroup = "$baseGroup.mixin"
 val modid: String by project
+val lwjgl3Version = "3.4.3"
 val transformerFile = file("src/main/resources/accesstransformer.cfg")
 
-// Toolchains:
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(8))
 }
 
-// Minecraft configuration:
 loom {
     log4jConfigs.from(file("log4j2.xml"))
-    launchConfigs {
-        "client" {
-            // If you don't want mixins, remove these lines
-            property("mixin.debug", "true")
-            arg("--tweakClass", "org.spongepowered.asm.launch.MixinTweaker")
-        }
-    }
     runConfigs {
         "client" {
             if (SystemUtils.IS_OS_MAC_OSX) {
-                // This argument causes a crash on macOS
                 vmArgs.remove("-XstartOnFirstThread")
             }
         }
@@ -43,16 +31,9 @@ loom {
     }
     forge {
         pack200Provider.set(dev.architectury.pack200.java.Pack200Adapter())
-        // If you don't want mixins, remove this lines
-        mixinConfig("mixins.$modid.json")
-	    if (transformerFile.exists()) {
-			println("Installing access transformer")
-		    accessTransformer(transformerFile)
-	    }
-    }
-    // If you don't want mixins, remove these lines
-    mixin {
-        defaultRefmapName.set("mixins.$modid.refmap.json")
+        if (transformerFile.exists()) {
+            accessTransformer(transformerFile)
+        }
     }
 }
 
@@ -60,13 +41,8 @@ sourceSets.main {
     output.setResourcesDir(sourceSets.main.flatMap { it.java.classesDirectory })
 }
 
-// Dependencies:
-
 repositories {
     mavenCentral()
-    maven("https://repo.spongepowered.org/maven/")
-    // If you don't want to log in with your real minecraft account, remove this line
-    maven("https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1")
 }
 
 val shadowImpl: Configuration by configurations.creating {
@@ -78,18 +54,21 @@ dependencies {
     mappings("de.oceanlabs.mcp:mcp_stable:22-1.8.9")
     forge("net.minecraftforge:forge:1.8.9-11.15.1.2318-1.8.9")
 
-    // If you don't want mixins, remove these lines
-    shadowImpl("org.spongepowered:mixin:0.7.11-SNAPSHOT") {
-        isTransitive = false
-    }
-    annotationProcessor("org.spongepowered:mixin:0.8.5-SNAPSHOT")
+    compileOnly("org.projectlombok:lombok:1.18.32")
+    annotationProcessor("org.projectlombok:lombok:1.18.32")
 
-    // If you don't want to log in with your real minecraft account, remove this line
-    runtimeOnly("me.djtheredstoner:DevAuth-forge-legacy:1.2.1")
+    shadowImpl("org.lwjgl:lwjgl:$lwjgl3Version")
+    shadowImpl("org.lwjgl:lwjgl:$lwjgl3Version:natives-windows")
+    shadowImpl("org.lwjgl:lwjgl:$lwjgl3Version:natives-linux")
+    shadowImpl("org.lwjgl:lwjgl:$lwjgl3Version:natives-macos")
+    shadowImpl("org.lwjgl:lwjgl:$lwjgl3Version:natives-macos-arm64")
 
+    shadowImpl("org.lwjgl:lwjgl-nanovg:$lwjgl3Version")
+    shadowImpl("org.lwjgl:lwjgl-nanovg:$lwjgl3Version:natives-windows")
+    shadowImpl("org.lwjgl:lwjgl-nanovg:$lwjgl3Version:natives-linux")
+    shadowImpl("org.lwjgl:lwjgl-nanovg:$lwjgl3Version:natives-macos")
+    shadowImpl("org.lwjgl:lwjgl-nanovg:$lwjgl3Version:natives-macos-arm64")
 }
-
-// Tasks:
 
 tasks.withType(JavaCompile::class) {
     options.encoding = "UTF-8"
@@ -100,12 +79,9 @@ tasks.withType(org.gradle.jvm.tasks.Jar::class) {
     manifest.attributes.run {
         this["FMLCorePluginContainsFMLMod"] = "true"
         this["ForceLoadAsMod"] = "true"
-
-        // If you don't want mixins, remove these lines
-        this["TweakClass"] = "org.spongepowered.asm.launch.MixinTweaker"
-        this["MixinConfigs"] = "mixins.$modid.json"
-	    if (transformerFile.exists())
-			this["FMLAT"] = "${modid}_at.cfg"
+        if (transformerFile.exists()) {
+            this["FMLAT"] = "${modid}_at.cfg"
+        }
     }
 }
 
@@ -115,18 +91,18 @@ tasks.processResources {
     inputs.property("modid", modid)
     inputs.property("basePackage", baseGroup)
 
-    filesMatching(listOf("mcmod.info", "mixins.$modid.json")) {
+    filesMatching(listOf("mcmod.info")) {
         expand(inputs.properties)
     }
 
     rename("accesstransformer.cfg", "META-INF/${modid}_at.cfg")
 }
 
-
 val remapJar by tasks.named<net.fabricmc.loom.task.RemapJarTask>("remapJar") {
     archiveClassifier.set("")
     from(tasks.shadowJar)
     input.set(tasks.shadowJar.get().archiveFile)
+    classpath(files(configurations.compileClasspath.get().filter { !it.name.startsWith("lwjgl") }))
 }
 
 tasks.jar {
@@ -134,19 +110,15 @@ tasks.jar {
     destinationDirectory.set(layout.buildDirectory.dir("intermediates"))
 }
 
+val relocatedLwjglPath = "$baseGroup.deps.org.lwjgl".replace(".", "/")
+
 tasks.shadowJar {
     destinationDirectory.set(layout.buildDirectory.dir("intermediates"))
     archiveClassifier.set("non-obfuscated-with-deps")
     configurations = listOf(shadowImpl)
-    doLast {
-        configurations.forEach {
-            println("Copying dependencies into mod: ${it.files}")
-        }
-    }
-
-    // If you want to include other dependencies and shadow them, you can relocate them in here
-    fun relocate(name: String) = relocate(name, "$baseGroup.deps.$name")
+    exclude("**/module-info.class", "META-INF/versions/**")
+    relocate(com.github.jengelman.gradle.plugins.shadow.relocation.SimpleRelocator("org.lwjgl", "$baseGroup.deps.org.lwjgl", null, null))
+    relocate(com.github.jengelman.gradle.plugins.shadow.relocation.SimpleRelocator("org/lwjgl", "$relocatedLwjglPath", null, null, true))
 }
 
 tasks.assemble.get().dependsOn(tasks.remapJar)
-

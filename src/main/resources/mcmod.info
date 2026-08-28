@@ -1,14 +1,14 @@
 [
   {
     "modid": "${modid}",
-    "name": "Xample Mod",
-    "description": "A mod that is used as an example.",
+    "name": "Kosovo Client",
+    "description": "albania eagle: SKRAAA",
     "version": "${version}",
     "mcversion": "${mcversion}",
-    "url": "https://github.com/romangraef/Forge1.8.9Template/",
-    "updateUrl": "",
+    "url": "https://github.com/mrailouis/kosovoClient",
+    "updateUrl": "https://github.com/mrailouis/kosovoClient/releases",
     "authorList": [
-      "You"
+      "mrai"
     ],
     "credits": "",
     "logoFile": "",
