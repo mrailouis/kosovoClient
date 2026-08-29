@@ -1,0 +1,19 @@
+{
+  "package": "${basePackage}.mixins",
+  "refmap": "mixins.${modid}.refmap.json",
+  "minVersion": "0.7",
+  "compatibilityLevel": "JAVA_8",
+  "client": [
+    "Mixin.MixinGuiMainMenu",
+    "Mixin.MixinItemRenderer",
+    "Mixin.MixinEntityRenderer",
+    "Mixin.MixinLayerArmorBase",
+    "Mixin.MixinModelBiped",
+    "Mixin.MixinRenderItem",
+    "Mixin.MixinMinecraft",
+    "Mixin.MixinRenderFish",
+    "Mixin.MixinGuiIngameForge",
+    "IMixin.IMixinItemFood",
+    "IMixin.IMixinSimpleReloadableResourceManager"
+  ]
+}

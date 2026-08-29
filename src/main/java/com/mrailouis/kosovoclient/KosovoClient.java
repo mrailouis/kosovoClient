@@ -12,6 +12,7 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 public class KosovoClient {
 
     public static final String MOD_ID = "kosovoclient";
+    public static final String VERSION = "1.0.0";
 
     @Getter
     @Mod.Instance(MOD_ID)

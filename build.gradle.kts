@@ -12,7 +12,7 @@ val baseGroup: String by project
 val mcVersion: String by project
 val version: String by project
 val modid: String by project
-val lwjgl3Version = "3.4.3"
+val lwjgl3Version = "3.3.6"
 val transformerFile = file("src/main/resources/accesstransformer.cfg")
 
 java {
@@ -21,6 +21,13 @@ java {
 
 loom {
     log4jConfigs.from(file("log4j2.xml"))
+    launchConfigs {
+        "client" {
+            property("mixin.debug", "true")
+            property("fml.coreMods.load", "com.mrailouis.kosovoclient.core.KosovoLoadingPlugin")
+            arg("--tweakClass", "org.spongepowered.asm.launch.MixinTweaker")
+        }
+    }
     runConfigs {
         "client" {
             if (SystemUtils.IS_OS_MAC_OSX) {
@@ -31,9 +38,13 @@ loom {
     }
     forge {
         pack200Provider.set(dev.architectury.pack200.java.Pack200Adapter())
+        mixinConfig("mixins.$modid.json")
         if (transformerFile.exists()) {
             accessTransformer(transformerFile)
         }
+    }
+    mixin {
+        defaultRefmapName.set("mixins.$modid.refmap.json")
     }
 }
 
@@ -43,10 +54,26 @@ sourceSets.main {
 
 repositories {
     mavenCentral()
+    maven("https://repo.spongepowered.org/maven/")
 }
+
+val lwjgl3: Configuration by configurations.creating
 
 val shadowImpl: Configuration by configurations.creating {
     configurations.implementation.get().extendsFrom(this)
+}
+
+val relocateLwjgl by tasks.registering(com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar::class) {
+    archiveClassifier.set("lwjgl3-relocated")
+    destinationDirectory.set(layout.buildDirectory.dir("intermediates"))
+    configurations = listOf(lwjgl3)
+    exclude("**/module-info.class", "META-INF/versions/**")
+    relocate("org.lwjgl.BufferUtils", "$baseGroup.deps.lwjgl3root.BufferUtils")
+    relocate("org.lwjgl.CLongBuffer", "$baseGroup.deps.lwjgl3root.CLongBuffer")
+    relocate("org.lwjgl.PointerBuffer", "$baseGroup.deps.lwjgl3root.PointerBuffer")
+    relocate("org.lwjgl.Version", "$baseGroup.deps.lwjgl3root.Version")
+    relocate("org.lwjgl.VersionImpl", "$baseGroup.deps.lwjgl3root.VersionImpl")
+    relocate("org.lwjgl.opengl.GL", "$baseGroup.render.GLBridge")
 }
 
 dependencies {
@@ -57,28 +84,39 @@ dependencies {
     compileOnly("org.projectlombok:lombok:1.18.32")
     annotationProcessor("org.projectlombok:lombok:1.18.32")
 
-    shadowImpl("org.lwjgl:lwjgl:$lwjgl3Version")
-    shadowImpl("org.lwjgl:lwjgl:$lwjgl3Version:natives-windows")
-    shadowImpl("org.lwjgl:lwjgl:$lwjgl3Version:natives-linux")
-    shadowImpl("org.lwjgl:lwjgl:$lwjgl3Version:natives-macos")
-    shadowImpl("org.lwjgl:lwjgl:$lwjgl3Version:natives-macos-arm64")
+    shadowImpl("org.spongepowered:mixin:0.7.11-SNAPSHOT") {
+        isTransitive = false
+    }
+    annotationProcessor("org.spongepowered:mixin:0.8.5-SNAPSHOT")
 
-    shadowImpl("org.lwjgl:lwjgl-nanovg:$lwjgl3Version")
-    shadowImpl("org.lwjgl:lwjgl-nanovg:$lwjgl3Version:natives-windows")
-    shadowImpl("org.lwjgl:lwjgl-nanovg:$lwjgl3Version:natives-linux")
-    shadowImpl("org.lwjgl:lwjgl-nanovg:$lwjgl3Version:natives-macos")
-    shadowImpl("org.lwjgl:lwjgl-nanovg:$lwjgl3Version:natives-macos-arm64")
+    lwjgl3("org.lwjgl:lwjgl:$lwjgl3Version")
+    lwjgl3("org.lwjgl:lwjgl:$lwjgl3Version:natives-windows")
+    lwjgl3("org.lwjgl:lwjgl:$lwjgl3Version:natives-linux")
+    lwjgl3("org.lwjgl:lwjgl:$lwjgl3Version:natives-macos")
+    lwjgl3("org.lwjgl:lwjgl:$lwjgl3Version:natives-macos-arm64")
+
+    lwjgl3("org.lwjgl:lwjgl-nanovg:$lwjgl3Version")
+    lwjgl3("org.lwjgl:lwjgl-nanovg:$lwjgl3Version:natives-windows")
+    lwjgl3("org.lwjgl:lwjgl-nanovg:$lwjgl3Version:natives-linux")
+    lwjgl3("org.lwjgl:lwjgl-nanovg:$lwjgl3Version:natives-macos")
+    lwjgl3("org.lwjgl:lwjgl-nanovg:$lwjgl3Version:natives-macos-arm64")
+
+    shadowImpl(files(relocateLwjgl.flatMap { it.archiveFile }))
 }
 
 tasks.withType(JavaCompile::class) {
     options.encoding = "UTF-8"
+    dependsOn(relocateLwjgl)
 }
 
 tasks.withType(org.gradle.jvm.tasks.Jar::class) {
     archiveBaseName.set(modid)
     manifest.attributes.run {
+        this["FMLCorePlugin"] = "$baseGroup.core.KosovoLoadingPlugin"
         this["FMLCorePluginContainsFMLMod"] = "true"
         this["ForceLoadAsMod"] = "true"
+        this["TweakClass"] = "org.spongepowered.asm.launch.MixinTweaker"
+        this["MixinConfigs"] = "mixins.$modid.json"
         if (transformerFile.exists()) {
             this["FMLAT"] = "${modid}_at.cfg"
         }
@@ -91,7 +129,7 @@ tasks.processResources {
     inputs.property("modid", modid)
     inputs.property("basePackage", baseGroup)
 
-    filesMatching(listOf("mcmod.info")) {
+    filesMatching(listOf("mcmod.info", "mixins.$modid.json")) {
         expand(inputs.properties)
     }
 
@@ -110,15 +148,11 @@ tasks.jar {
     destinationDirectory.set(layout.buildDirectory.dir("intermediates"))
 }
 
-val relocatedLwjglPath = "$baseGroup.deps.org.lwjgl".replace(".", "/")
-
 tasks.shadowJar {
     destinationDirectory.set(layout.buildDirectory.dir("intermediates"))
     archiveClassifier.set("non-obfuscated-with-deps")
     configurations = listOf(shadowImpl)
     exclude("**/module-info.class", "META-INF/versions/**")
-    relocate(com.github.jengelman.gradle.plugins.shadow.relocation.SimpleRelocator("org.lwjgl", "$baseGroup.deps.org.lwjgl", null, null))
-    relocate(com.github.jengelman.gradle.plugins.shadow.relocation.SimpleRelocator("org/lwjgl", "$relocatedLwjglPath", null, null, true))
 }
 
 tasks.assemble.get().dependsOn(tasks.remapJar)
