@@ -14,7 +14,15 @@
     "Mixin.MixinRenderFish",
     "Mixin.MixinGuiIngameForge",
     "Mixin.MixinRendererLivingEntity",
+    "Mixin.MixinRenderEntityItem",
+    "Mixin.MixinNetHandlerPlayClient",
+    "Mixin.MixinGuiNewChat",
+    "Mixin.MixinGuiChat",
+    "Mixin.MixinRenderPlayer",
+    "Mixin.MixinLayerCape",
     "IMixin.IMixinItemFood",
+    "IMixin.IMixinEntityFX",
+    "IMixin.IMixinGuiNewChat",
     "IMixin.IMixinSimpleReloadableResourceManager"
   ]
 }

@@ -11,10 +11,10 @@
 - [x] ~~Zoom~~
 - [x] ~~Motion Blur~~
 - [x] ~~Block Overlay~~
-- [ ] Custom Crosshair
+- [x] ~~Custom Crosshair~~
 - [x] ~~Custom Nametags~~
-- [ ] Item Physics
-- [ ] Particles
+- [x] ~~Item Physics~~
+- [x] ~~Particles~~
   - Hit particle type
   - Multiplier
   - Sharpness particles
@@ -26,19 +26,19 @@
 
 ## Player
 - [ ] Toggle Sprint
-- [ ] Auto GG
-- [ ] Auto Tip
+- [x] ~~Auto GG~~
+- [x] ~~Auto Tip~~
 
 ## Chat
-- [ ] Copy Chat
-- [ ] Infinite Chat
-- [ ] Spam Filter
+- [x] ~~Copy Chat~~
+- [x] ~~Infinite Chat~~
+- [x] ~~Spam Filter~~
 
 ## Cosmetics
-- [ ] Capes
-- [ ] Wings
+- [x] ~~Capes~~
+- [x] ~~Wings~~
 - [ ] Emotes
 
 ## Sounds
-- [ ] Custom Win Sound
-- [ ] Custom Kill Sound
+- [x] ~~Custom Win Sound~~
+- [x] ~~Custom Kill Sound~~

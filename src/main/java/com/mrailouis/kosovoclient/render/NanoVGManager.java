@@ -143,6 +143,53 @@ public class NanoVGManager {
         NanoVG.nvgFill(vg);
     }
 
+    public void drawCircle(float cx, float cy, float radius, int hexColor) {
+        if (radius <= 0.0f) {
+            return;
+        }
+        float r = ((hexColor >> 16) & 0xFF) / 255.0f;
+        float g = ((hexColor >> 8) & 0xFF) / 255.0f;
+        float b = (hexColor & 0xFF) / 255.0f;
+        float a = ((hexColor >> 24) & 0xFF) / 255.0f;
+        if (a == 0.0f && (hexColor & 0xFF000000) == 0) {
+            a = 1.0f;
+        }
+
+        color.r(r);
+        color.g(g);
+        color.b(b);
+        color.a(a);
+
+        NanoVG.nvgBeginPath(vg);
+        NanoVG.nvgCircle(vg, cx, cy, radius);
+        NanoVG.nvgFillColor(vg, color);
+        NanoVG.nvgFill(vg);
+    }
+
+    public void drawCircleOutline(float cx, float cy, float radius, float strokeWidth, int hexColor) {
+        if (radius <= 0.0f) {
+            return;
+        }
+        float r = ((hexColor >> 16) & 0xFF) / 255.0f;
+        float g = ((hexColor >> 8) & 0xFF) / 255.0f;
+        float b = (hexColor & 0xFF) / 255.0f;
+        float a = ((hexColor >> 24) & 0xFF) / 255.0f;
+        if (a == 0.0f && (hexColor & 0xFF000000) == 0) {
+            a = 1.0f;
+        }
+
+        color.r(r);
+        color.g(g);
+        color.b(b);
+        color.a(a);
+
+        NanoVG.nvgBeginPath(vg);
+        NanoVG.nvgCircle(vg, cx, cy, radius);
+        NanoVG.nvgStrokeColor(vg, color);
+        NanoVG.nvgStrokeWidth(vg, strokeWidth);
+        NanoVG.nvgStroke(vg);
+    }
+
     public void drawRoundedRect(float x, float y, float width, float height, float radius, int hexColor) {
         if (width <= 0.0f || height <= 0.0f) {
             return;

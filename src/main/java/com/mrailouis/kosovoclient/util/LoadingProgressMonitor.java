@@ -41,18 +41,22 @@ public class LoadingProgressMonitor {
     }
 
     public static void pollActiveProgress() {
-        if (activeBars.isEmpty()) {
+        int size = activeBars.size();
+        if (size == 0) {
             return;
         }
-        ProgressManager.ProgressBar bar = activeBars.get(activeBars.size() - 1);
-        if (bar != null) {
-            currentTitle = bar.getTitle();
-            currentMessage = bar.getMessage();
-            currentStep = bar.getStep();
-            currentSteps = bar.getSteps();
-            if (currentSteps > 0) {
-                progress = (float) currentStep / (float) currentSteps;
+        try {
+            ProgressManager.ProgressBar bar = activeBars.get(size - 1);
+            if (bar != null) {
+                currentTitle = bar.getTitle();
+                currentMessage = bar.getMessage();
+                currentStep = bar.getStep();
+                currentSteps = bar.getSteps();
+                if (currentSteps > 0) {
+                    progress = (float) currentStep / (float) currentSteps;
+                }
             }
+        } catch (IndexOutOfBoundsException ignored) {
         }
     }
 

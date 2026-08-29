@@ -6,17 +6,31 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ModeSetting extends Setting<String> {
-    private final String[] modes;
+    private String[] modes;
     private int index;
 
     public ModeSetting(String name, String description, String defaultMode, String[] modes) {
         super(name, description, defaultMode);
-        this.modes = modes;
-        for (int i = 0; i < modes.length; i++) {
-            if (modes[i].equalsIgnoreCase(defaultMode)) {
+        this.modes = modes == null ? new String[0] : modes;
+        for (int i = 0; i < this.modes.length; i++) {
+            if (this.modes[i].equalsIgnoreCase(defaultMode)) {
                 this.index = i;
                 break;
             }
+        }
+    }
+
+    public void setModes(String[] newModes) {
+        this.modes = newModes == null ? new String[0] : newModes;
+        this.index = 0;
+        for (int i = 0; i < this.modes.length; i++) {
+            if (this.modes[i].equalsIgnoreCase(this.value)) {
+                this.index = i;
+                return;
+            }
+        }
+        if (this.modes.length > 0) {
+            this.value = this.modes[0];
         }
     }
 

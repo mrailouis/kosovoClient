@@ -10,19 +10,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
 import net.minecraftforge.client.event.RenderPlayerEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.lwjgl.opengl.GL11;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Getter
 public class CustomNametags extends Module {
@@ -30,7 +25,6 @@ public class CustomNametags extends Module {
 
     private final BooleanSetting showHealth = new BooleanSetting("Show Health", "Display player health.", true);
     private final BooleanSetting showPing = new BooleanSetting("Show Ping", "Display network latency.", true);
-    private final BooleanSetting showArmor = new BooleanSetting("Show Armor", "Render equipped armor and held items.", true);
     private final BooleanSetting background = new BooleanSetting("Background", "Draw dark background behind nametag.", true);
     private final ColorSetting backgroundColor = new ColorSetting("Background Color", "Color of the nametag background.", 0xBF000000);
     private final NumberSetting scale = new NumberSetting("Scale", "Overall scale of the nametag.", 1.0, 0.5, 2.5, 0.1);
@@ -40,10 +34,9 @@ public class CustomNametags extends Module {
     }
 
     private CustomNametags() {
-        super("Custom Nametags", "Enhanced and customizable player nametags with health, ping, and armor.", Category.VISUALS, true);
+        super("Custom Nametags", "Enhanced and customizable player nametags with health and ping.", Category.VISUALS, true);
         registerSetting(this.showHealth);
         registerSetting(this.showPing);
-        registerSetting(this.showArmor);
         registerSetting(this.background);
         registerSetting(this.backgroundColor);
         registerSetting(this.scale);
@@ -112,49 +105,12 @@ public class CustomNametags extends Module {
 
         fontRenderer.drawStringWithShadow(fullTag, -halfWidth, 0, 0xFFFFFFFF);
 
-        if (this.showArmor.isEnabled()) {
-            renderPlayerEquipment(player, -halfWidth, -18);
-        }
-
         GlStateManager.enableDepth();
         GlStateManager.depthMask(true);
         GlStateManager.enableLighting();
         GlStateManager.disableBlend();
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         GlStateManager.popMatrix();
-    }
-
-    private void renderPlayerEquipment(EntityPlayer player, int startX, int y) {
-        Minecraft mc = Minecraft.getMinecraft();
-        List<ItemStack> items = new ArrayList<ItemStack>();
-
-        ItemStack held = player.getHeldItem();
-        if (held != null) {
-            items.add(held);
-        }
-
-        for (int i = 3; i >= 0; i--) {
-            ItemStack armor = player.inventory.armorInventory[i];
-            if (armor != null) {
-                items.add(armor);
-            }
-        }
-
-        if (items.isEmpty()) {
-            return;
-        }
-
-        int totalWidth = items.size() * 16;
-        int curX = -totalWidth / 2;
-
-        RenderHelper.enableGUIStandardItemLighting();
-        for (ItemStack item : items) {
-            mc.getRenderItem().renderItemAndEffectIntoGUI(item, curX, y);
-            mc.getRenderItem().renderItemOverlays(mc.fontRendererObj, item, curX, y);
-            curX += 16;
-        }
-        RenderHelper.disableStandardItemLighting();
-        GlStateManager.disableLighting();
     }
 
     private int getPlayerPing(EntityPlayer player) {
