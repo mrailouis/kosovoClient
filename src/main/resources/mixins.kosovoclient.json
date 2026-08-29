@@ -13,6 +13,7 @@
     "Mixin.MixinMinecraft",
     "Mixin.MixinRenderFish",
     "Mixin.MixinGuiIngameForge",
+    "Mixin.MixinRendererLivingEntity",
     "IMixin.IMixinItemFood",
     "IMixin.IMixinSimpleReloadableResourceManager"
   ]

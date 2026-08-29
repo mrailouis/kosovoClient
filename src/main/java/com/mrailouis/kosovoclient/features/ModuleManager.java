@@ -3,7 +3,13 @@ package com.mrailouis.kosovoclient.features;
 import com.mrailouis.kosovoclient.features.impl.animations.AnimationHandler;
 import com.mrailouis.kosovoclient.features.impl.animations.OldAnimations;
 import com.mrailouis.kosovoclient.features.impl.animations.SneakHandler;
+import com.mrailouis.kosovoclient.features.impl.hud.CPS;
+import com.mrailouis.kosovoclient.features.impl.hud.Clock;
+import com.mrailouis.kosovoclient.features.impl.hud.FPS;
+import com.mrailouis.kosovoclient.features.impl.hud.HudRenderer;
+import com.mrailouis.kosovoclient.features.impl.hud.Ping;
 import com.mrailouis.kosovoclient.features.impl.visuals.BlockOverlay;
+import com.mrailouis.kosovoclient.features.impl.visuals.CustomNametags;
 import com.mrailouis.kosovoclient.features.impl.visuals.Fullbright;
 import com.mrailouis.kosovoclient.features.impl.visuals.MotionBlur;
 import com.mrailouis.kosovoclient.features.impl.visuals.Zoom;
@@ -23,18 +29,26 @@ public class ModuleManager {
     private final List<Module> modules = new ArrayList<Module>();
 
     public void init() {
+        register(CPS.getInstance());
+        register(FPS.getInstance());
+        register(Ping.getInstance());
+        register(Clock.getInstance());
         register(OldAnimations.getInstance());
         register(Fullbright.getInstance());
         register(Zoom.getInstance());
         register(MotionBlur.getInstance());
         register(BlockOverlay.getInstance());
+        register(CustomNametags.getInstance());
 
+        MinecraftForge.EVENT_BUS.register(CPS.getInstance());
+        MinecraftForge.EVENT_BUS.register(HudRenderer.getInstance());
         MinecraftForge.EVENT_BUS.register(AnimationHandler.getInstance());
         MinecraftForge.EVENT_BUS.register(SneakHandler.getInstance());
         MinecraftForge.EVENT_BUS.register(Fullbright.getInstance());
         MinecraftForge.EVENT_BUS.register(Zoom.getInstance());
         MinecraftForge.EVENT_BUS.register(MotionBlur.getInstance());
         MinecraftForge.EVENT_BUS.register(BlockOverlay.getInstance());
+        MinecraftForge.EVENT_BUS.register(CustomNametags.getInstance());
     }
 
     public void register(Module module) {

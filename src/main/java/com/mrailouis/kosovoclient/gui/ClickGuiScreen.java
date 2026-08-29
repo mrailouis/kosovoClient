@@ -9,7 +9,6 @@ import com.mrailouis.kosovoclient.features.Module;
 import com.mrailouis.kosovoclient.features.ModuleManager;
 import com.mrailouis.kosovoclient.features.NumberSetting;
 import com.mrailouis.kosovoclient.features.Setting;
-import com.mrailouis.kosovoclient.render.KawaseBlur;
 import com.mrailouis.kosovoclient.render.NanoVGManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
@@ -174,8 +173,6 @@ public class ClickGuiScreen extends GuiScreen {
             float sidebarWidth = currentWidth * 0.22f;
             float sidebarHeight = currentHeight - curTopBarHeight;
             float padX = sidebarWidth * 0.12f;
-
-            KawaseBlur.getInstance().renderBlur(currentX, currentY, currentWidth, currentHeight, currentRadius);
 
             NanoVGManager nvg = NanoVGManager.getInstance();
             nvg.beginFrame(screenWidth, screenHeight, pixelRatio);
@@ -662,6 +659,19 @@ public class ClickGuiScreen extends GuiScreen {
                     scrollVelocity = 0.0f;
                     return;
                 }
+            }
+
+            float dividerGap = sidebarWidth * 0.08f;
+            float categoriesFullBottomY = categoriesStartY + (CATEGORY_NAMES.length * itemHeight) + (itemHeight * 0.35f);
+            float editHudsButtonWidth = sidebarWidth - (dividerGap * 2.0f);
+            float editHudsButtonHeightCalculated = editHudsButtonHeight;
+            float editHudsButtonX = currentX + dividerGap;
+            float editHudsButtonY = categoriesFullBottomY + editHudsSpacing;
+
+            if (mouseX >= editHudsButtonX && mouseX <= editHudsButtonX + editHudsButtonWidth &&
+                    mouseY >= editHudsButtonY && mouseY <= editHudsButtonY + editHudsButtonHeightCalculated) {
+                mc.displayGuiScreen(new EditHudsScreen(this));
+                return;
             }
         }
 
