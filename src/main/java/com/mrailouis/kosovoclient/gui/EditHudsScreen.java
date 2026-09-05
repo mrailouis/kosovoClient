@@ -50,9 +50,21 @@ public class EditHudsScreen extends GuiScreen {
         }
     }
 
+    private static final int TITLE_BAR_TOP = 0xFF6DB2EC;
+    private static final int TITLE_BAR_BOTTOM = 0xFF175BA6;
+    private static final int TITLE_BAR_BORDER = 0xFF0F4E92;
+    private static final int PANEL_BORDER_COLOR = 0xFF5B7A9E;
+    private static final int WINDOW_GLOW_COLOR = 0x7A3D94D9;
+    private static final int BTN_TOP = 0xFFFDFDFD;
+    private static final int BTN_BOTTOM = 0xFFE3E9EF;
+    private static final int BTN_BORDER = 0xFFA7B6C6;
+    private static final int BTN_HOVER_TOP = 0xFFF0F8FE;
+    private static final int BTN_HOVER_BOTTOM = 0xFFD7ECFB;
+    private static final int BTN_HOVER_BORDER = 0xFF7EB4EA;
+
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        drawRect(0, 0, this.width, this.height, 0x44000000);
+        drawRect(0, 0, this.width, this.height, 0x22000000);
 
         if (this.draggingModule != null) {
             float newX = Math.max(0.0f, Math.min(this.width - this.draggingModule.getWidth(), mouseX - this.dragOffsetX));
@@ -83,17 +95,22 @@ public class EditHudsScreen extends GuiScreen {
         float bannerHeight = 36.0f;
         float bannerX = (screenWidth - bannerWidth) / 2.0f;
         float bannerY = 14.0f;
-        nvg.drawGlassPanel(bannerX, bannerY, bannerWidth, bannerHeight, 6.0f, 0xBF000000, 0x22FFFFFF);
-        nvg.drawText("Edit HUDs", bannerX + bannerWidth / 2.0f, bannerY + 12.0f, NanoVGManager.FONT_INTER_BOLD, 12.0f, 0xFFFF3333, NanoVG.NVG_ALIGN_CENTER | NanoVG.NVG_ALIGN_MIDDLE);
-        nvg.drawText("Drag to move • Scroll to scale", bannerX + bannerWidth / 2.0f, bannerY + 25.0f, NanoVGManager.FONT_INTER, 9.0f, 0x99FFFFFF, NanoVG.NVG_ALIGN_CENTER | NanoVG.NVG_ALIGN_MIDDLE);
+        nvg.drawOuterGlow(bannerX, bannerY, bannerWidth, bannerHeight, 6.0f, 8.0f, WINDOW_GLOW_COLOR);
+        nvg.drawAeroTitleBar(bannerX, bannerY, bannerWidth, bannerHeight, 6.0f, 6.0f, TITLE_BAR_TOP, TITLE_BAR_BOTTOM);
+        nvg.drawRoundedRectOutline(bannerX, bannerY, bannerWidth, bannerHeight, 6.0f, 1.0f, PANEL_BORDER_COLOR);
+        nvg.drawText("Edit HUDs", bannerX + bannerWidth / 2.0f, bannerY + 12.0f, NanoVGManager.FONT_INTER_BOLD, 12.0f, 0xFFFFFFFF, NanoVG.NVG_ALIGN_CENTER | NanoVG.NVG_ALIGN_MIDDLE);
+        nvg.drawText("Drag to move • Scroll to scale", bannerX + bannerWidth / 2.0f, bannerY + 25.0f, NanoVGManager.FONT_INTER, 9.0f, 0xFFDCEBFA, NanoVG.NVG_ALIGN_CENTER | NanoVG.NVG_ALIGN_MIDDLE);
 
         float doneWidth = 60.0f;
         float doneHeight = 24.0f;
         float doneX = screenWidth - doneWidth - 16.0f;
         float doneY = 14.0f;
         boolean doneHovered = mouseX >= doneX && mouseX <= doneX + doneWidth && mouseY >= doneY && mouseY <= doneY + doneHeight;
-        nvg.drawGlassPanel(doneX, doneY, doneWidth, doneHeight, 4.0f, doneHovered ? 0xDDFF3333 : 0xBF000000, doneHovered ? 0xFFFF5555 : 0x22FFFFFF);
-        nvg.drawText("Done", doneX + doneWidth / 2.0f, doneY + doneHeight / 2.0f, NanoVGManager.FONT_INTER_BOLD, 11.0f, 0xFFFFFFFF, NanoVG.NVG_ALIGN_CENTER | NanoVG.NVG_ALIGN_MIDDLE);
+        int doneTop = doneHovered ? BTN_HOVER_TOP : BTN_TOP;
+        int doneBottom = doneHovered ? BTN_HOVER_BOTTOM : BTN_BOTTOM;
+        int doneBorder = doneHovered ? BTN_HOVER_BORDER : BTN_BORDER;
+        nvg.drawAeroButton(doneX, doneY, doneWidth, doneHeight, 4.0f, doneTop, doneBottom, doneBorder, 0.55f);
+        nvg.drawText("Done", doneX + doneWidth / 2.0f, doneY + doneHeight / 2.0f, NanoVGManager.FONT_INTER_BOLD, 11.0f, 0xFF23313F, NanoVG.NVG_ALIGN_CENTER | NanoVG.NVG_ALIGN_MIDDLE);
 
         nvg.endFrame();
 

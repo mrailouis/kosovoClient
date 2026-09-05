@@ -347,6 +347,10 @@ public class NanoVGManager {
         NanoVG.nvgStroke(vg);
     }
 
+    /**
+     * Plain, unshadowed text - matches native Windows 7 (Segoe UI) rendering. Do not add a
+     * drop-shadow/outline pass here; that is what made earlier iterations read as a Minecraft HUD.
+     */
     public void drawText(String text, float x, float y, String fontName, float fontSize, int hexColor, int alignment) {
         float r = ((hexColor >> 16) & 0xFF) / 255.0f;
         float g = ((hexColor >> 8) & 0xFF) / 255.0f;
@@ -356,25 +360,14 @@ public class NanoVGManager {
             a = 1.0f;
         }
 
-        float shadowOffset = Math.max(1.0f, Math.round(fontSize * 0.035f));
-        float shadowAlpha = a * 0.35f;
-
-        color.r(0.0f);
-        color.g(0.0f);
-        color.b(0.0f);
-        color.a(shadowAlpha);
-
-        NanoVG.nvgFontFace(vg, fontName);
-        NanoVG.nvgFontSize(vg, fontSize);
-        NanoVG.nvgTextAlign(vg, alignment);
-        NanoVG.nvgFillColor(vg, color);
-        NanoVG.nvgText(vg, x + shadowOffset, y + shadowOffset, text);
-
         color.r(r);
         color.g(g);
         color.b(b);
         color.a(a);
 
+        NanoVG.nvgFontFace(vg, fontName);
+        NanoVG.nvgFontSize(vg, fontSize);
+        NanoVG.nvgTextAlign(vg, alignment);
         NanoVG.nvgFillColor(vg, color);
         NanoVG.nvgText(vg, x, y, text);
     }
@@ -673,6 +666,320 @@ public class NanoVGManager {
         NanoVG.nvgRoundedRect(vg, x, y, width, height, radius);
         NanoVG.nvgFillPaint(vg, paint);
         NanoVG.nvgFill(vg);
+    }
+
+    private void setColorExact(NVGColor target, int hexColor) {
+        float r = ((hexColor >> 16) & 0xFF) / 255.0f;
+        float g = ((hexColor >> 8) & 0xFF) / 255.0f;
+        float b = (hexColor & 0xFF) / 255.0f;
+        float a = ((hexColor >>> 24) & 0xFF) / 255.0f;
+        target.r(r);
+        target.g(g);
+        target.b(b);
+        target.a(a);
+    }
+
+    public static int withAlpha(int hexColor, float alpha) {
+        int a = Math.round(Math.max(0.0f, Math.min(1.0f, alpha)) * 255.0f);
+        return (a << 24) | (hexColor & 0x00FFFFFF);
+    }
+
+    /**
+     * Fills a rounded rect with a top-to-bottom linear gradient. Colors are exact ARGB
+     * (an explicit 0x00 alpha stays fully transparent) - used for Aero glass/gloss effects.
+     */
+    public void drawVerticalGradientRounded(float x, float y, float width, float height,
+                                             float radTopLeft, float radTopRight, float radBottomRight, float radBottomLeft,
+                                             int topColorArgb, int bottomColorArgb) {
+        if (width <= 0.0f || height <= 0.0f) {
+            return;
+        }
+        setColorExact(color1, topColorArgb);
+        setColorExact(color2, bottomColorArgb);
+        NanoVG.nvgLinearGradient(vg, x, y, x, y + height, color1, color2, paint);
+
+        float maxRadius = Math.min(width, height) / 2.0f;
+        float rtl = Math.max(0.0f, Math.min(radTopLeft, maxRadius));
+        float rtr = Math.max(0.0f, Math.min(radTopRight, maxRadius));
+        float rbr = Math.max(0.0f, Math.min(radBottomRight, maxRadius));
+        float rbl = Math.max(0.0f, Math.min(radBottomLeft, maxRadius));
+
+        NanoVG.nvgBeginPath(vg);
+        NanoVG.nvgRoundedRectVarying(vg, x, y, width, height, rtl, rtr, rbr, rbl);
+        NanoVG.nvgFillPaint(vg, paint);
+        NanoVG.nvgFill(vg);
+    }
+
+    public void drawVerticalGradientRounded(float x, float y, float width, float height, float radius, int topColorArgb, int bottomColorArgb) {
+        drawVerticalGradientRounded(x, y, width, height, radius, radius, radius, radius, topColorArgb, bottomColorArgb);
+    }
+
+    /**
+     * Soft outer glow/drop-shadow behind a rounded rect, e.g. the Aero window glow.
+     * Uses the classic NanoVG box-gradient-with-hole technique.
+     */
+    public void drawOuterGlow(float x, float y, float width, float height, float radius, float feather, int glowColorArgb) {
+        setColorExact(color1, glowColorArgb);
+        setColorExact(color2, withAlpha(glowColorArgb, 0.0f));
+        NanoVG.nvgBoxGradient(vg, x, y, width, height, radius, feather, color1, color2, paint);
+
+        NanoVG.nvgBeginPath(vg);
+        NanoVG.nvgRect(vg, x - feather * 2.0f, y - feather * 2.0f, width + feather * 4.0f, height + feather * 4.0f);
+        NanoVG.nvgRoundedRect(vg, x, y, width, height, radius);
+        NanoVG.nvgPathWinding(vg, NanoVG.NVG_HOLE);
+        NanoVG.nvgFillPaint(vg, paint);
+        NanoVG.nvgFill(vg);
+    }
+
+    /**
+     * The glassy "shine" strip across the top portion of an Aero surface (title bar, button).
+     */
+    public void drawGlossHighlight(float x, float y, float width, float height, float radTopLeft, float radTopRight, float peakAlpha) {
+        if (width <= 0.0f || height <= 0.0f) {
+            return;
+        }
+        setColorExact(color1, withAlpha(0xFFFFFFFF, peakAlpha));
+        setColorExact(color2, withAlpha(0xFFFFFFFF, 0.0f));
+        NanoVG.nvgLinearGradient(vg, x, y, x, y + height, color1, color2, paint);
+
+        float maxRadius = Math.min(width, height) / 2.0f;
+        float rtl = Math.max(0.0f, Math.min(radTopLeft, maxRadius));
+        float rtr = Math.max(0.0f, Math.min(radTopRight, maxRadius));
+
+        NanoVG.nvgBeginPath(vg);
+        NanoVG.nvgRoundedRectVarying(vg, x, y, width, height, rtl, rtr, 0.0f, 0.0f);
+        NanoVG.nvgFillPaint(vg, paint);
+        NanoVG.nvgFill(vg);
+    }
+
+    /**
+     * A classic Windows 7 chrome button: vertical gradient fill, glossy top-half shine and a
+     * thin outline. Used for Edit HUDs / mode / keybind / done buttons.
+     */
+    public void drawAeroButton(float x, float y, float width, float height, float radius,
+                                int topColorArgb, int bottomColorArgb, int borderColorArgb, float glossAlpha) {
+        drawVerticalGradientRounded(x, y, width, height, radius, topColorArgb, bottomColorArgb);
+        if (glossAlpha > 0.0f) {
+            drawGlossHighlight(x + 1.0f, y + 1.0f, width - 2.0f, (height - 2.0f) * 0.5f, Math.max(0.0f, radius - 1.0f), Math.max(0.0f, radius - 1.0f), glossAlpha);
+        }
+        drawRoundedRectOutline(x, y, width, height, radius, 1.0f, borderColorArgb);
+    }
+
+    /**
+     * Windows 7 Aero title bar: blue vertical gradient with a glassy shine band on top.
+     */
+    public void drawAeroTitleBar(float x, float y, float width, float height, float radTopLeft, float radTopRight,
+                                  int topColorArgb, int bottomColorArgb) {
+        drawAeroTitleBar(x, y, width, height, radTopLeft, radTopRight, topColorArgb, bottomColorArgb, bottomColorArgb);
+    }
+
+    /**
+     * Three-layer Aero glass: a pale translucent top, a mid-tone belly and a stronger blue base,
+     * with a glassy shine band and a 1px bright highlight just under the top edge. The base fill
+     * uses a translucent top color so the world behind the GUI faintly shows through the glass.
+     */
+    public void drawAeroTitleBar(float x, float y, float width, float height, float radTopLeft, float radTopRight,
+                                  int topColorArgb, int midColorArgb, int bottomColorArgb) {
+        drawVerticalGradientRounded(x, y, width, height, radTopLeft, radTopRight, 0.0f, 0.0f, topColorArgb, bottomColorArgb);
+
+        float midY = y + height * 0.32f;
+        setColorExact(color1, midColorArgb);
+        setColorExact(color2, bottomColorArgb);
+        NanoVG.nvgLinearGradient(vg, x, midY, x, y + height, color1, color2, paint);
+        NanoVG.nvgBeginPath(vg);
+        NanoVG.nvgRect(vg, x, midY, width, (y + height) - midY);
+        NanoVG.nvgFillPaint(vg, paint);
+        NanoVG.nvgFill(vg);
+
+        drawGlossHighlight(x, y, width, height * 0.50f, radTopLeft, radTopRight, 0.38f);
+        drawLine(x + 1.0f, y + 1.0f, x + width - 1.0f, y + 1.0f, 1.0f, withAlpha(0xFFFFFFFF, 0.55f));
+    }
+
+    public void setGlobalAlpha(float alpha) {
+        NanoVG.nvgGlobalAlpha(vg, Math.max(0.0f, Math.min(1.0f, alpha)));
+    }
+
+    /**
+     * A Windows 7 style square checkbox: light bevel fill, grey border, blue tick that
+     * fades in with `progress` (drive this with the same enable/toggle progress used elsewhere).
+     */
+    public void drawWin7Checkbox(float x, float y, float size, float progress, boolean hovered) {
+        int topC = hovered ? 0xFFFFFFFF : 0xFFFCFCFC;
+        int botC = hovered ? 0xFFE9F4FE : 0xFFE9E9E9;
+        int borderC = hovered ? 0xFF7EB4EA : 0xFF8C9BA8;
+        drawVerticalGradientRounded(x, y, size, size, 2.0f, topC, botC);
+        drawRoundedRectOutline(x, y, size, size, 2.0f, 1.0f, borderC);
+        if (progress > 0.01f) {
+            drawCheckmark(x + size / 2.0f, y + size / 2.0f + size * 0.02f, size, 0xFF1E6FC7, Math.max(1.0f, size * 0.16f), progress);
+        }
+    }
+
+    public void drawCheckmark(float cx, float cy, float size, int hexColor, float strokeWidth, float alpha) {
+        if (alpha <= 0.001f) {
+            return;
+        }
+        setColorExact(color, withAlpha(hexColor, alpha));
+        float s = size * 0.5f;
+        NanoVG.nvgBeginPath(vg);
+        NanoVG.nvgMoveTo(vg, cx - s * 0.85f, cy + s * 0.05f);
+        NanoVG.nvgLineTo(vg, cx - s * 0.20f, cy + s * 0.65f);
+        NanoVG.nvgLineTo(vg, cx + s * 0.95f, cy - s * 0.55f);
+        NanoVG.nvgStrokeColor(vg, color);
+        NanoVG.nvgStrokeWidth(vg, strokeWidth);
+        NanoVG.nvgLineCap(vg, NanoVG.NVG_ROUND);
+        NanoVG.nvgLineJoin(vg, NanoVG.NVG_ROUND);
+        NanoVG.nvgStroke(vg);
+    }
+
+    public static final int TITLE_CONTROL_MINIMIZE = 0;
+    public static final int TITLE_CONTROL_MAXIMIZE = 1;
+    public static final int TITLE_CONTROL_CLOSE = 2;
+
+    /**
+     * One of the three Windows 7 title bar buttons. Flat rectangles flush against each other
+     * (native Windows 7 buttons are not individually rounded pills) drawn as vector glyphs, not
+     * text, so font glyph coverage never matters.
+     */
+    public void drawTitleBarControl(float x, float y, float w, float h, int kind, boolean hovered) {
+        boolean isCloseButton = kind == TITLE_CONTROL_CLOSE;
+        int topC, botC, borderC, glyphColor;
+        if (isCloseButton && hovered) {
+            topC = 0xFFE8796D;
+            botC = 0xFFC63027;
+            borderC = 0xFF8E1E19;
+            glyphColor = 0xFFFFFFFF;
+        } else if (hovered) {
+            topC = 0xFFDCF0FE;
+            botC = 0xFFAEDBF7;
+            borderC = 0xFF5B7894;
+            glyphColor = 0xFF15539E;
+        } else {
+            topC = withAlpha(0xFFFFFFFF, 0.16f);
+            botC = withAlpha(0xFFFFFFFF, 0.02f);
+            borderC = withAlpha(0xFFFFFFFF, 0.0f);
+            glyphColor = 0xFFFFFFFF;
+        }
+        drawVerticalGradientRounded(x, y, w, h, 0.0f, topC, botC);
+        if ((borderC >>> 24) > 0) {
+            drawRoundedRectOutline(x, y, w, h, 0.0f, 1.0f, borderC);
+        }
+
+        float cx = x + w / 2.0f;
+        float cy = y + h / 2.0f;
+        float s = Math.min(w, h) * 0.30f;
+        setColorExact(color, glyphColor);
+        NanoVG.nvgStrokeColor(vg, color);
+        NanoVG.nvgLineCap(vg, NanoVG.NVG_BUTT);
+        NanoVG.nvgLineJoin(vg, NanoVG.NVG_MITER);
+
+        if (kind == TITLE_CONTROL_MINIMIZE) {
+            NanoVG.nvgBeginPath(vg);
+            NanoVG.nvgMoveTo(vg, cx - s, cy + s * 0.7f);
+            NanoVG.nvgLineTo(vg, cx + s, cy + s * 0.7f);
+            NanoVG.nvgStrokeWidth(vg, 1.2f);
+            NanoVG.nvgStroke(vg);
+        } else if (kind == TITLE_CONTROL_MAXIMIZE) {
+            NanoVG.nvgBeginPath(vg);
+            NanoVG.nvgRect(vg, cx - s, cy - s, s * 2.0f, s * 2.0f);
+            NanoVG.nvgStrokeWidth(vg, 1.2f);
+            NanoVG.nvgStroke(vg);
+        } else {
+            NanoVG.nvgBeginPath(vg);
+            NanoVG.nvgMoveTo(vg, cx - s, cy - s);
+            NanoVG.nvgLineTo(vg, cx + s, cy + s);
+            NanoVG.nvgMoveTo(vg, cx + s, cy - s);
+            NanoVG.nvgLineTo(vg, cx - s, cy + s);
+            NanoVG.nvgStrokeWidth(vg, 1.3f);
+            NanoVG.nvgStroke(vg);
+        }
+    }
+
+    /**
+     * The round glossy blue back/forward arrow button from the Windows 7 Explorer toolbar.
+     */
+    public void drawExplorerNavButton(float cx, float cy, float radius, boolean pointsLeft, boolean enabled, boolean hovered) {
+        int topC = enabled ? (hovered ? 0xFF8FC6F2 : 0xFF6DB2EC) : 0xFFE1E6EB;
+        int botC = enabled ? (hovered ? 0xFF2E7BC9 : 0xFF175BA6) : 0xFFC7CED6;
+        int borderC = enabled ? 0xFF0F4E92 : 0xFFA7B6C6;
+
+        setColorExact(color1, topC);
+        setColorExact(color2, botC);
+        NanoVG.nvgLinearGradient(vg, cx, cy - radius, cx, cy + radius, color1, color2, paint);
+        NanoVG.nvgBeginPath(vg);
+        NanoVG.nvgCircle(vg, cx, cy, radius);
+        NanoVG.nvgFillPaint(vg, paint);
+        NanoVG.nvgFill(vg);
+
+        setColorExact(color1, withAlpha(0xFFFFFFFF, 0.55f));
+        setColorExact(color2, withAlpha(0xFFFFFFFF, 0.0f));
+        NanoVG.nvgLinearGradient(vg, cx, cy - radius, cx, cy, color1, color2, paint);
+        NanoVG.nvgBeginPath(vg);
+        NanoVG.nvgCircle(vg, cx, cy - radius * 0.15f, radius * 0.85f);
+        NanoVG.nvgFillPaint(vg, paint);
+        NanoVG.nvgFill(vg);
+
+        setColorExact(color, borderC);
+        NanoVG.nvgBeginPath(vg);
+        NanoVG.nvgCircle(vg, cx, cy, radius);
+        NanoVG.nvgStrokeColor(vg, color);
+        NanoVG.nvgStrokeWidth(vg, 1.0f);
+        NanoVG.nvgStroke(vg);
+
+        int arrowColor = enabled ? 0xFFFFFFFF : 0xFF9AA7B4;
+        setColorExact(color, arrowColor);
+        float s = radius * 0.5f;
+        NanoVG.nvgBeginPath(vg);
+        if (pointsLeft) {
+            NanoVG.nvgMoveTo(vg, cx + s * 0.35f, cy - s);
+            NanoVG.nvgLineTo(vg, cx - s * 0.5f, cy);
+            NanoVG.nvgLineTo(vg, cx + s * 0.35f, cy + s);
+        } else {
+            NanoVG.nvgMoveTo(vg, cx - s * 0.35f, cy - s);
+            NanoVG.nvgLineTo(vg, cx + s * 0.5f, cy);
+            NanoVG.nvgLineTo(vg, cx - s * 0.35f, cy + s);
+        }
+        NanoVG.nvgStrokeColor(vg, color);
+        NanoVG.nvgStrokeWidth(vg, 1.5f);
+        NanoVG.nvgLineCap(vg, NanoVG.NVG_ROUND);
+        NanoVG.nvgLineJoin(vg, NanoVG.NVG_ROUND);
+        NanoVG.nvgStroke(vg);
+    }
+
+    /**
+     * A Windows 7 trackbar (slider): thin silver groove, blue fill and a rounded silver/white knob.
+     */
+    public void drawAeroSlider(float x, float y, float width, float height, float progress, int grooveColor, int fillColor, int knobBorderColor) {
+        float radius = height / 2.0f;
+        drawRoundedRect(x, y, width, height, radius, grooveColor);
+        drawRoundedRectOutline(x, y, width, height, radius, 0.75f, 0x33000000);
+
+        float activeWidth = Math.max(height, width * Math.max(0.0f, Math.min(1.0f, progress)));
+        drawVerticalGradientRounded(x, y, activeWidth, height, radius, withAlpha(fillColor, 0.95f), withAlpha(fillColor, 1.0f));
+
+        float thumbX = x + width * Math.max(0.0f, Math.min(1.0f, progress));
+        float thumbY = y + height / 2.0f;
+        float thumbRadius = height * 0.95f;
+
+        color.r(0.0f).g(0.0f).b(0.0f).a(0.30f);
+        NanoVG.nvgBeginPath(vg);
+        NanoVG.nvgCircle(vg, thumbX, thumbY + 1.0f, thumbRadius);
+        NanoVG.nvgFillColor(vg, color);
+        NanoVG.nvgFill(vg);
+
+        setColorExact(color1, 0xFFFFFFFF);
+        setColorExact(color2, 0xFFD8D8D8);
+        NanoVG.nvgLinearGradient(vg, thumbX, thumbY - thumbRadius, thumbX, thumbY + thumbRadius, color1, color2, paint);
+        NanoVG.nvgBeginPath(vg);
+        NanoVG.nvgCircle(vg, thumbX, thumbY, thumbRadius);
+        NanoVG.nvgFillPaint(vg, paint);
+        NanoVG.nvgFill(vg);
+
+        setColorExact(color, knobBorderColor);
+        NanoVG.nvgBeginPath(vg);
+        NanoVG.nvgCircle(vg, thumbX, thumbY, thumbRadius);
+        NanoVG.nvgStrokeColor(vg, color);
+        NanoVG.nvgStrokeWidth(vg, 1.0f);
+        NanoVG.nvgStroke(vg);
     }
 
     public void drawPickerKnob(float x, float y, float radius, int hexColor) {
